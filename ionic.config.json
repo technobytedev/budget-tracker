@@ -1,0 +1,8 @@
+{
+  "name": "Budget Tracker",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "vue-vite",
+  "id": "640b753e"
+}
