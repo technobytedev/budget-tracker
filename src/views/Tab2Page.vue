@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonInput, IonItem, IonList, IonLabel } from '@ionic/vue';
+import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonInput, IonItem, IonList, IonLabel, IonTabButton } from '@ionic/vue';
 import { IonRadio, IonRadioGroup } from '@ionic/vue';
 import { ref, onMounted } from 'vue';
 import { Storage } from '@ionic/storage';
@@ -103,7 +103,7 @@ const saveTransaction = async () => {
         <ion-item>
           <ion-input v-model="notes" label="Notes" placeholder="Notes.."></ion-input>
         </ion-item>
-        <ion-button @click="saveTransaction" style="width: 100%;">Save</ion-button>
+        <button @click="saveTransaction" style="width: 100%; padding: 10px; background-color: #376eff;color: white;">Save</button>
       </ion-list>
 
       <ion-list v-if="transactions.length > 0">
