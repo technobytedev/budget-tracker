@@ -12,7 +12,7 @@
         </ion-refresher-content>
       </ion-refresher>
 
-      <h1 style="margin-left: 20px;color: #565656;">Hi User!</h1>
+      <h1 style="margin-left: 20px;">Hi User!</h1>
       <ion-grid :fixed="true">
         <ion-row>
             <ion-card style="background-color: #20d0ff;color: white;">

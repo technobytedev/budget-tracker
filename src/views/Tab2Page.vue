@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonInput, IonItem, IonList, IonLabel, IonModal, IonButton, IonButtons } from '@ionic/vue';
 import { IonRadio, IonRadioGroup } from '@ionic/vue';
-import { IonFab, IonFabButton, IonIcon } from '@ionic/vue';
+import { IonFab, IonFabButton, IonIcon, IonDatetime, IonDatetimeButton } from '@ionic/vue';
+import {  IonSelect, IonSelectOption } from '@ionic/vue';
+import { IonToast } from '@ionic/vue';
+
+
 import { IonAlert } from '@ionic/vue';
 
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { Storage } from '@ionic/storage';
 import { ellipse, square, triangle, appsOutline, walletOutline, add } from 'ionicons/icons';
 
@@ -17,12 +21,22 @@ const promptDelete = (id: string) => {
 };
 
 const deleteTransaction = async () => {
-  transactions.value = transactions.value.filter(
-    (record) => record.id !== transactionToDelete.value
+  // Delete from full list
+  allTransactions.value = allTransactions.value.filter(
+    (record: any) => record.id !== transactionToDelete.value
   );
-  await store.set('transactions', JSON.parse(JSON.stringify(transactions.value)));
+
+  // Apply filter to update current view
+  filterTransactionsByMonthYear();
+
+  // Save to storage
+  await store.set('transactions', JSON.parse(JSON.stringify(allTransactions.value)));
+
   transactionToDelete.value = null;
+  isToastOpen.value = true;
+  message.value = 'Transaction deleted successfully.';
 };
+
 
 const alertButtons = [
   {
@@ -38,26 +52,58 @@ const alertButtons = [
     handler: deleteTransaction
   }
 ];
+const message = ref('');
 const amount = ref('');
-const date = ref('');
+const date = ref(new Date().toISOString()); // ISO 8601 format
+const monthYear = ref(new Date().toISOString()); // ISO 8601 format
+const isToastOpen = ref(false);
+
 const category = ref();
 const notes = ref('');
 const isModelOpen = ref(false);
+const allTransactions = ref()
 
 const store = new Storage();
 const transactions = ref<any[]>([]);
 
 onMounted(async () => {
   await store.create();
-  //   await store.remove('transactions');
 
-  // // Optional: set default
-  // transactions.value = [];
   const stored = await store.get('transactions');
   if (Array.isArray(stored)) {
-    transactions.value = stored;
-  }
+  allTransactions.value = stored;
+} else {
+  allTransactions.value = [];
+}
 });
+
+// Watch for changes to monthYear
+watch(monthYear, () => {
+  filterTransactionsByMonthYear();
+});
+
+function filterTransactionsByMonthYear() {
+  const monthYearStr = monthYear.value.slice(0, 7); // "YYYY-MM"
+  const [year, month] = monthYearStr.split('-').map(Number);
+
+  const filtered = allTransactions.value.filter(t => {
+    const date = new Date(t.date);
+    return date.getFullYear() === year && date.getMonth() === month - 1;
+  });
+
+  transactions.value = filtered;
+}
+
+
+function formatDateOnly(dateString: string): string {
+  if (!dateString) return ''
+  const d = new Date(dateString)
+  return d.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+}
 
 async function deleteAll() {
   await store.remove('transactions');
@@ -67,7 +113,7 @@ async function deleteAll() {
 
 const saveTransaction = async () => {
 
-  if (!amount.value || !date.value || !document.getElementById('category').value || !notes.value) {
+  if (!amount.value || !date.value || !category.value || !notes.value) {
     console.warn('Amount and Date are required.');
     return;
   }
@@ -77,21 +123,26 @@ const saveTransaction = async () => {
     id: crypto.randomUUID(),
     amount: parseFloat(parseFloat(amount.value).toFixed(2)),
     date: date.value,
-    category: category.value ?? document.getElementById('category').value,
+    category: category.value,
     notes: notes.value
   };
 
+console.log(newRecord)
 
-  transactions.value.push(newRecord);
+allTransactions.value.push(newRecord);
 
   // ✅ Store a plain array, not the reactive Proxy
-  await store.set('transactions', JSON.parse(JSON.stringify(transactions.value)));
+  await store.set('transactions', JSON.parse(JSON.stringify(allTransactions.value)));
+
+  isToastOpen.value = true;
+  message.value = 'Transaction addedd successfully.'
 
   // Reset form
   amount.value = '';
-  date.value = '';
+  date.value = new Date().toISOString()
   category.value = '';
   notes.value = '';
+  filterTransactionsByMonthYear();
   cancel()
 };
 
@@ -121,17 +172,32 @@ const formatAmount = (amount: number) => {
       </ion-toolbar>
     </ion-header>
     <ion-content :fullscreen="true">
-      <!-- <h1 style="margin-left: 10px;" @click="deleteAll">Delete All</h1> -->
-
-      <!-- <ion-button >Add New Transaction</ion-button> -->
-
       <ion-fab slot="fixed" vertical="bottom" horizontal="end" id="open-modal" expand="block">
         <ion-fab-button class="appPrimary">
           <ion-icon :icon="add"></ion-icon>
         </ion-fab-button>
       </ion-fab>
 
-  <ion-content :fullscreen="true" scroll-y keyboard-attach>
+  <ion-content :fullscreen="true" scroll-y keyboard-attach style="margin: 10px!important;">
+    <ion-datetime-button  datetime="topdatetime" presentation="month-year" style="margin-bottom: 10px;margin-left: 0px;margin-top: 10px; "  />
+
+
+      <ion-toast
+      :is-open="isToastOpen"
+      :message="message"
+      :duration="2000"
+      @didDismiss="isToastOpen = false">
+    </ion-toast>
+
+  <!-- Modal with Month Picker Only -->
+  <ion-modal keep-contents-mounted >
+    <ion-datetime
+      id="topdatetime"
+      v-model="monthYear"
+      presentation="month-year"
+      show-default-buttons
+    ></ion-datetime>
+  </ion-modal>
   <ion-modal ref="modal" trigger="open-modal">
     <ion-header>
       <ion-toolbar style="margin-top:20px;">
@@ -145,7 +211,7 @@ const formatAmount = (amount: number) => {
       </ion-toolbar>
     </ion-header>
 
-    <ion-content fullscreen keyboard-attach :scroll-events="true">
+    <ion-content  style="height:120vh!important; overflow: auto!important;">
       <ion-list class="">
 
         <h6 style="text-align: center;">New Transaction</h6>
@@ -162,27 +228,32 @@ const formatAmount = (amount: number) => {
         </ion-item>
 
         <!-- Category -->
-        <ion-item lines="none" class="ion-margin-top">
-          <ion-label class="ion-text-wrap">Category</ion-label>
+        <ion-item class="ion-margin-top" >
+          <ion-label position="floating"  style="margin-bottom: 10px;">Category</ion-label>
+          <ion-select v-model="category" interface="popover" placeholder="Select Category">
+            <ion-select-option value="income">Income</ion-select-option>
+            <ion-select-option value="expenses">Expenses</ion-select-option>
+          </ion-select>
         </ion-item>
-        <div class="ion-padding-start">
-          <ion-radio-group v-model="category" id="category">
-            <ion-item lines="none">
-              <ion-label>Income</ion-label>
-              <ion-radio slot="start" value="income"></ion-radio>
-            </ion-item>
-            <ion-item lines="none">
-              <ion-label>Expenses</ion-label>
-              <ion-radio slot="start" value="expenses"></ion-radio>
-            </ion-item>
-          </ion-radio-group>
-        </div>
 
-        <!-- Date -->
-        <ion-item class="ion-margin-top">
-          <ion-label position="floating" style="margin-bottom: 10px;">Date</ion-label>
-          <ion-input v-model="date" type="date"></ion-input>
-        </ion-item>
+<!-- Date -->
+<ion-item class="ion-margin-top"> 
+  <ion-label position="floating" style="margin-bottom: 25px;">Date:</ion-label>
+
+  <!-- Date Picker Button -->
+  <ion-datetime-button datetime="datetime" presentation="date" style="margin-bottom: 20px;" />
+
+  <!-- Modal with Only Date Picker -->
+  <ion-modal keep-contents-mounted>
+    <ion-datetime
+      id="datetime"
+      presentation="date"
+      v-model="date"
+      show-default-buttons
+    ></ion-datetime>
+  </ion-modal>
+</ion-item>
+
 
         <!-- Notes -->
         <ion-item class="ion-margin-top">
@@ -194,19 +265,19 @@ const formatAmount = (amount: number) => {
   </ion-modal>
 
 
-  <ion-list v-if="transactions?.length > 0">
+  <ion-list v-if="allTransactions?.length > 0">
     <ion-item
       button
-      v-for="(record, index) in transactions"
+      v-for="(record, index) in allTransactions"
       :key="record.id"
       @click="promptDelete(record.id)"
     >
-      <ion-label>
+      <ion-label style="margin: 5px!important;">
         <h2> Amount: <span :class="record.category == 'expenses' ? 'text-red' : 'text-green'">
            {{ record.category == 'expenses' ? '-' : '+' }}  {{ formatAmount(record.amount) }}
           </span>
         </h2>
-        <p>Date: {{ record.date }}</p>
+        <p>Date: {{ formatDateOnly(record.date) }}</p>
         <p>Category: {{ record.category }}</p>
         <p>Notes: {{ record.notes }}</p>
         <!-- <p>ID: {{ record.id }}</p> -->

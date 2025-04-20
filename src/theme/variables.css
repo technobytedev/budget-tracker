@@ -2,8 +2,7 @@
 http://ionicframework.com/docs/theming/ */
 
 ion-tab-button.tab-selected {
-    color: white!important; /* active icon + label color */
-    background-color: #20d0ff!important; /* optional highlight bg */
+    color: #20d0ff!important; /* active icon + label color */
 }
 
 .appPrimary {
