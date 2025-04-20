@@ -131,10 +131,10 @@ const formatAmount = (amount: number) => {
     </ion-fab-button>
   </ion-fab>
 
-      <ion-content class="ion-padding">
+  <ion-content :fullscreen="true">
   <ion-modal ref="modal" trigger="open-modal">
     <ion-header>
-      <ion-toolbar>
+      <ion-toolbar style="margin-top:20px;">
         <ion-buttons slot="start">
           <ion-button @click="cancel()">Cancel</ion-button>
         </ion-buttons>
@@ -145,8 +145,8 @@ const formatAmount = (amount: number) => {
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="ion-padding">
-      <ion-list class="ion-no-margin">
+    <ion-content fullscreen keyboard-attach :scroll-events="true">
+      <ion-list class="">
 
         <h6 style="text-align: center;">New Transaction</h6>
 
@@ -190,13 +190,6 @@ const formatAmount = (amount: number) => {
           <ion-input v-model="notes" placeholder="Enter notes..."></ion-input>
         </ion-item>
       </ion-list>
-
-      <!-- Save Button -->
-      <!-- <div class="ion-padding-top">
-        <ion-button expand="block" color="primary" >
-          Save
-        </ion-button>
-      </div> -->
     </ion-content>
   </ion-modal>
 
@@ -209,7 +202,7 @@ const formatAmount = (amount: number) => {
       @click="promptDelete(record.id)"
     >
       <ion-label>
-        <h2> Amount: <span :class="record.category == 'expenses' ? 'text-green' : 'text-red'">
+        <h2> Amount: <span :class="record.category == 'expenses' ? 'text-red' : 'text-green'">
            {{ record.category == 'expenses' ? '-' : '+' }}  {{ formatAmount(record.amount) }}
           </span>
         </h2>
@@ -235,13 +228,10 @@ const formatAmount = (amount: number) => {
 </template>
 
 <style>
-ion-modal {
-  --width: 95%;
-  --height: 100%;
-  --max-height: 90%;
-  --border-radius: 16px;
+ion-content {
+  --keyboard-offset: 0px;
+  --overflow: auto;
 }
-
 .text-green {
   color: #00d336;
 }
