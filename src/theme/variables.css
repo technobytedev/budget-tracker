@@ -1,2 +1,12 @@
 /* For information on how to create your own theme, please see:
 http://ionicframework.com/docs/theming/ */
+
+ion-tab-button.tab-selected {
+    color: white!important; /* active icon + label color */
+    background-color: #20d0ff!important; /* optional highlight bg */
+}
+
+.appPrimary {
+    --background: #20d0ff; /* iOS red */
+    --color: #fff;          /* icon color */
+  }

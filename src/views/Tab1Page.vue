@@ -15,12 +15,12 @@
       <h1 style="margin-left: 20px;color: #565656;">Hi User!</h1>
       <ion-grid :fixed="true">
         <ion-row>
-            <ion-card >
+            <ion-card style="background-color: #20d0ff;color: white;">
               <ion-card-content>
                 <ion-grid :fixed="true">
                   <ion-row>
                     <ion-col>
-                    <h1>Balance</h1>
+                    <h1>Income</h1>
                     </ion-col>
                     <ion-col>
                     <h1>₱{{ formatAmount(totalIncome) ?? 0.00 }}</h1>
@@ -29,7 +29,7 @@
                 </ion-grid>
               </ion-card-content>
             </ion-card>
-            <ion-card >
+            <ion-card style="background-color: #20d0ff;color: white;">
               <ion-card-content>
                 <ion-grid :fixed="true">
                   <ion-row>
@@ -43,7 +43,7 @@
                 </ion-grid>
               </ion-card-content>
             </ion-card>
-            <ion-card >
+            <ion-card style="background-color: #20d0ff;color: white;">
               <ion-card-content>
                 <ion-grid :fixed="true">
                   <ion-row>

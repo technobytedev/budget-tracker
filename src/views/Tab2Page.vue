@@ -125,13 +125,13 @@ const formatAmount = (amount: number) => {
 
       <!-- <ion-button >Add New Transaction</ion-button> -->
 
-      <ion-fab  slot="fixed" vertical="bottom" horizontal="end" id="open-modal" expand="block">
-    <ion-fab-button>
-      <ion-icon :icon="add"></ion-icon>
-    </ion-fab-button>
-  </ion-fab>
+      <ion-fab slot="fixed" vertical="bottom" horizontal="end" id="open-modal" expand="block">
+        <ion-fab-button class="appPrimary">
+          <ion-icon :icon="add"></ion-icon>
+        </ion-fab-button>
+      </ion-fab>
 
-  <ion-content :fullscreen="true">
+  <ion-content :fullscreen="true" scroll-y keyboard-attach>
   <ion-modal ref="modal" trigger="open-modal">
     <ion-header>
       <ion-toolbar style="margin-top:20px;">
@@ -230,7 +230,7 @@ const formatAmount = (amount: number) => {
 <style>
 ion-content {
   --keyboard-offset: 0px;
-  --overflow: auto;
+  --overflow-y: auto;
 }
 .text-green {
   color: #00d336;
