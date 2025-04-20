@@ -2,15 +2,15 @@
   <ion-page>
     <ion-header>
       <ion-toolbar>
-        <ion-title>Profile</ion-title>
+        <ion-title style="padding-top: 20px;">Profile</ion-title>
       </ion-toolbar>
     </ion-header>
     <ion-content :fullscreen="true">
-      <ion-header collapse="condense">
+      <!-- <ion-header collapse="condense">
         <ion-toolbar>
           <ion-title size="large">Profile</ion-title>
         </ion-toolbar>
-      </ion-header>
+      </ion-header> -->
 
       <h1 style="text-align: center;">Version 1.0</h1>
     </ion-content>
