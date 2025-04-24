@@ -1,35 +1,107 @@
 <script setup lang="ts">
-import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonInput, IonItem, IonList, IonLabel, IonModal, IonButton, IonButtons } from '@ionic/vue';
-import { IonRadio, IonRadioGroup } from '@ionic/vue';
-import { IonFab, IonFabButton, IonIcon, IonDatetime, IonDatetimeButton } from '@ionic/vue';
-import {  IonSelect, IonSelectOption } from '@ionic/vue';
-import { IonToast } from '@ionic/vue';
-
-
-import { IonAlert } from '@ionic/vue';
-
-import { ref, onMounted, computed, watch } from 'vue';
+import {
+  IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
+  IonInput, IonItem, IonList, IonLabel, IonModal, IonButton, IonButtons,
+  IonRadio, IonRadioGroup, IonFab, IonFabButton, IonIcon, IonDatetime, IonDatetimeButton,
+  IonSelect, IonSelectOption, IonToast, IonAlert, IonSegment, IonSegmentButton, IonSegmentView, IonSegmentContent
+} from '@ionic/vue';
+import { ref, onMounted, watch } from 'vue';
 import { Storage } from '@ionic/storage';
 import { ellipse, square, triangle, appsOutline, walletOutline, add } from 'ionicons/icons';
 
+// -------------------------
+// Refs and Reactive Values
+// -------------------------
 const isAlertOpen = ref(false);
+const isToastOpen = ref(false);
+const isModelOpen = ref(false);
 const transactionToDelete = ref<string | null>(null);
 
+const message = ref('');
+const amount = ref('');
+const date = ref(new Date().toISOString()); // Default to now
+const monthYear = ref(new Date().toISOString().slice(0, 7)); // "YYYY-MM"
+const category = ref('');
+const notes = ref('');
+
+const allTransactions = ref<any[]>([]);
+const transactions = ref<any[]>([]);
+
+const modal = ref();
+const store = new Storage();
+
+// -------------------------
+// Lifecycle
+// -------------------------
+onMounted(async () => {
+  await store.create();
+
+  const stored = await store.get('transactions');
+  if (Array.isArray(stored)) {
+    allTransactions.value = stored;
+    filterTransactionsByMonthYear();
+  } else {
+    allTransactions.value = [];
+    transactions.value = [];
+  }
+});
+
+// -------------------------
+// Watchers
+// -------------------------
+watch(monthYear, filterTransactionsByMonthYear);
+
+// -------------------------
+// Methods
+// -------------------------
 const promptDelete = (id: string) => {
   transactionToDelete.value = id;
   isAlertOpen.value = true;
 };
 
+const longPressTimeout = ref<number | null>(null);
+
+const handleLongPressStart = (id: string) => {
+  longPressTimeout.value = window.setTimeout(() => {
+    // Vibrate
+    if (navigator.vibrate) {
+      navigator.vibrate(100);
+    }
+
+    // Show modal or prompt delete
+    promptDelete(id);
+  }, 500); // 500ms = long press
+};
+
+const handleLongPressEnd = () => {
+  if (longPressTimeout.value !== null) {
+    clearTimeout(longPressTimeout.value);
+    longPressTimeout.value = null;
+  }
+};
+
+
+function filterTransactionsByMonthYear() {
+  if (!monthYear.value) return;
+
+  const [yearStr, monthStr] = monthYear.value.split('-');
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+
+  if (isNaN(year) || isNaN(month)) return;
+
+  transactions.value = allTransactions.value.filter(t => {
+    const transactionDate = new Date(t.date);
+    return transactionDate.getFullYear() === year && transactionDate.getMonth() === month - 1;
+  });
+}
+
 const deleteTransaction = async () => {
-  // Delete from full list
   allTransactions.value = allTransactions.value.filter(
     (record: any) => record.id !== transactionToDelete.value
   );
 
-  // Apply filter to update current view
   filterTransactionsByMonthYear();
-
-  // Save to storage
   await store.set('transactions', JSON.parse(JSON.stringify(allTransactions.value)));
 
   transactionToDelete.value = null;
@@ -37,7 +109,64 @@ const deleteTransaction = async () => {
   message.value = 'Transaction deleted successfully.';
 };
 
+async function deleteAll() {
+  await store.remove('transactions');
+  allTransactions.value = [];
+  transactions.value = [];
+}
 
+const saveTransaction = async () => {
+  if (!amount.value || !date.value || !category.value || !notes.value) {
+    console.warn('All fields are required.');
+    return;
+  }
+
+  const newRecord = {
+    id: crypto.randomUUID(),
+    amount: parseFloat(parseFloat(amount.value).toFixed(2)),
+    date: date.value,
+    category: category.value,
+    notes: notes.value
+  };
+
+  allTransactions.value.push(newRecord);
+  await store.set('transactions', JSON.parse(JSON.stringify(allTransactions.value)));
+
+  isToastOpen.value = true;
+  message.value = 'Transaction added successfully.';
+
+  // Reset form
+  amount.value = '';
+  date.value = new Date().toISOString();
+  category.value = '';
+  notes.value = '';
+  filterTransactionsByMonthYear();
+  cancel();
+};
+
+const cancel = () => modal.value?.$el.dismiss(null, 'cancel');
+const confirm = () => {}; // placeholder
+
+function formatDateOnly(dateString: string): string {
+  if (!dateString) return '';
+  const d = new Date(dateString);
+  return d.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+}
+
+function formatAmount(amount: number): string {
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(amount);
+}
+
+// -------------------------
+// Alert Buttons
+// -------------------------
 const alertButtons = [
   {
     text: 'Cancel',
@@ -52,117 +181,7 @@ const alertButtons = [
     handler: deleteTransaction
   }
 ];
-const message = ref('');
-const amount = ref('');
-const date = ref(new Date().toISOString()); // ISO 8601 format
-const monthYear = ref(new Date().toISOString()); // ISO 8601 format
-const isToastOpen = ref(false);
-
-const category = ref();
-const notes = ref('');
-const isModelOpen = ref(false);
-const allTransactions = ref()
-
-const store = new Storage();
-const transactions = ref<any[]>([]);
-
-onMounted(async () => {
-  await store.create();
-
-  const stored = await store.get('transactions');
-  if (Array.isArray(stored)) {
-  allTransactions.value = stored;
-} else {
-  allTransactions.value = [];
-}
-});
-
-// Watch for changes to monthYear
-watch(monthYear, () => {
-  filterTransactionsByMonthYear();
-});
-
-function filterTransactionsByMonthYear() {
-  const monthYearStr = monthYear.value.slice(0, 7); // "YYYY-MM"
-  const [year, month] = monthYearStr.split('-').map(Number);
-
-  const filtered = allTransactions.value.filter(t => {
-    const date = new Date(t.date);
-    return date.getFullYear() === year && date.getMonth() === month - 1;
-  });
-
-  transactions.value = filtered;
-}
-
-
-function formatDateOnly(dateString: string): string {
-  if (!dateString) return ''
-  const d = new Date(dateString)
-  return d.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
-}
-
-async function deleteAll() {
-  await store.remove('transactions');
-  transactions.value = [];
-  
-}
-
-const saveTransaction = async () => {
-
-  if (!amount.value || !date.value || !category.value || !notes.value) {
-    console.warn('Amount and Date are required.');
-    return;
-  }
-
-
-  const newRecord = {
-    id: crypto.randomUUID(),
-    amount: parseFloat(parseFloat(amount.value).toFixed(2)),
-    date: date.value,
-    category: category.value,
-    notes: notes.value
-  };
-
-console.log(newRecord)
-
-allTransactions.value.push(newRecord);
-
-  // ✅ Store a plain array, not the reactive Proxy
-  await store.set('transactions', JSON.parse(JSON.stringify(allTransactions.value)));
-
-  isToastOpen.value = true;
-  message.value = 'Transaction addedd successfully.'
-
-  // Reset form
-  amount.value = '';
-  date.value = new Date().toISOString()
-  category.value = '';
-  notes.value = '';
-  filterTransactionsByMonthYear();
-  cancel()
-};
-
-const modal = ref();
-const cancel = () => modal.value.$el.dismiss(null, 'cancel');
-
-const confirm = () => {
-
-};
-
-const formatAmount = (amount: number) => {
-  return new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(amount);
-};
-
-
 </script>
-
 
 <template>
   <ion-page>
@@ -171,17 +190,18 @@ const formatAmount = (amount: number) => {
         <ion-title style="padding-top: 20px;">Transactions</ion-title>
       </ion-toolbar>
     </ion-header>
+
     <ion-content :fullscreen="true">
       <ion-fab slot="fixed" vertical="bottom" horizontal="end" id="open-modal" expand="block">
         <ion-fab-button class="appPrimary">
           <ion-icon :icon="add"></ion-icon>
         </ion-fab-button>
       </ion-fab>
+  
 
   <ion-content :fullscreen="true" scroll-y keyboard-attach style="margin: 10px!important;">
-    <ion-datetime-button  datetime="topdatetime" presentation="month-year" style="margin-bottom: 10px;margin-left: 0px;margin-top: 10px; "  />
-
-
+    
+    <ion-datetime-button :icon="walletOutline"    datetime="topdatetime" presentation="month-year" style="margin-top: 20px;" class="custom-datetime-btn"/>
       <ion-toast
       :is-open="isToastOpen"
       :message="message"
@@ -211,7 +231,7 @@ const formatAmount = (amount: number) => {
       </ion-toolbar>
     </ion-header>
 
-    <ion-content  style="height:120vh!important; overflow: auto!important;">
+    <ion-content  :fullscreen="true" class="ion-padding">
       <ion-list class="">
 
         <h6 style="text-align: center;">New Transaction</h6>
@@ -265,25 +285,88 @@ const formatAmount = (amount: number) => {
   </ion-modal>
 
 
-  <ion-list v-if="allTransactions?.length > 0">
-    <ion-item
-      button
-      v-for="(record, index) in allTransactions"
-      :key="record.id"
-      @click="promptDelete(record.id)"
-    >
-      <ion-label style="margin: 5px!important;">
-        <h2> Amount: <span :class="record.category == 'expenses' ? 'text-red' : 'text-green'">
-           {{ record.category == 'expenses' ? '-' : '+' }}  {{ formatAmount(record.amount) }}
-          </span>
-        </h2>
-        <p>Date: {{ formatDateOnly(record.date) }}</p>
-        <p>Category: {{ record.category }}</p>
-        <p>Notes: {{ record.notes }}</p>
-        <!-- <p>ID: {{ record.id }}</p> -->
-      </ion-label>
-    </ion-item>
-  </ion-list>
+  <ion-segment>
+    <ion-segment-button value="first" content-id="first">
+      <ion-label>All</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="second" content-id="second">
+      <ion-label>Income</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="third" content-id="third">
+      <ion-label>Expenses</ion-label>
+    </ion-segment-button>
+  </ion-segment>
+  <ion-segment-view padding="true" scroll-y>
+    <ion-segment-content id="first" class="transactionWrapper">
+      <ion-list v-if="transactions?.length > 0">
+        <ion-item
+          button
+          v-for="(record, index) in transactions"
+          :key="record.id"
+          @touchstart="handleLongPressStart(record.id)"
+          @touchend="handleLongPressEnd"
+          @touchcancel="handleLongPressEnd"
+        >
+          <ion-label style="margin: 5px!important;">
+            <h2> Amount: <span :class="record.category == 'expenses' ? 'text-red' : 'text-green'">
+              {{ record.category == 'expenses' ? '-' : '+' }}  {{ formatAmount(record.amount) }}
+              </span>
+            </h2>
+            <p>Date: {{ formatDateOnly(record.date) }}</p>
+            <p>Category: {{ record.category }}</p>
+            <p>Notes: {{ record.notes }}</p>
+            <!-- <p>ID: {{ record.id }}</p> -->
+          </ion-label>
+        </ion-item>
+      </ion-list>
+    </ion-segment-content>
+    <ion-segment-content id="second" class="transactionWrapper">
+      <ion-list v-if="transactions?.length > 0">
+        <template v-for="(record, index) in transactions"
+          :key="record.id"
+          @click="promptDelete(record.id)">
+        <ion-item
+          button
+          v-if="record.category == 'income'"
+        >
+          <ion-label style="margin: 5px!important;">
+            <h2> Amount: <span :class="record.category == 'expenses' ? 'text-red' : 'text-green'">
+              {{ record.category == 'expenses' ? '-' : '+' }}  {{ formatAmount(record.amount) }}
+              </span>
+            </h2>
+            <p>Date: {{ formatDateOnly(record.date) }}</p>
+            <p>Category: {{ record.category }}</p>
+            <p>Notes: {{ record.notes }}</p>
+            <!-- <p>ID: {{ record.id }}</p> -->
+          </ion-label>
+        </ion-item>
+      </template>
+      </ion-list>
+    </ion-segment-content>
+    <ion-segment-content id="third" class="transactionWrapper">
+      <ion-list v-if="transactions?.length > 0">
+        <template v-for="(record, index) in transactions"
+          :key="record.id"
+          @click="promptDelete(record.id)">
+        <ion-item
+          button
+          v-if="record.category == 'expenses'"
+        >
+          <ion-label style="margin: 5px!important;">
+            <h2> Amount: <span :class="record.category == 'expenses' ? 'text-red' : 'text-green'">
+              {{ record.category == 'expenses' ? '-' : '+' }}  {{ formatAmount(record.amount) }}
+              </span>
+            </h2>
+            <p>Date: {{ formatDateOnly(record.date) }}</p>
+            <p>Category: {{ record.category }}</p>
+            <p>Notes: {{ record.notes }}</p>
+            <!-- <p>ID: {{ record.id }}</p> -->
+          </ion-label>
+        </ion-item>
+      </template>
+      </ion-list>
+    </ion-segment-content>
+  </ion-segment-view>
 
   <!-- Alert Confirmation -->
   <ion-alert
@@ -308,5 +391,18 @@ ion-content {
 }
 .text-red {
   color:#df1800
+}
+.transactionWrapper {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.custom-datetime-btn::part(native) {
+  background-color: #20d0ff;  /* Background */
+  color: white;               /* Text color */
+  font-size: 1.2rem;            /* Font size */
+  padding: 10px 20px;         /* Padding */
+  border-radius: 8px;         /* Rounded corners */
+  margin-bottom: 10px;
 }
 </style>

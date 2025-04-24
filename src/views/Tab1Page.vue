@@ -12,9 +12,25 @@
         </ion-refresher-content>
       </ion-refresher>
 
-      <h1 style="margin-left: 20px;">Hi User!</h1>
+      <h1 style="margin-left: 20px;">  {{ new Date().toLocaleString('default', { month: 'long' }) }}
+      </h1>
       <ion-grid :fixed="true">
         <ion-row>
+          <ion-card style="background-color: #20d0ff;color: white;">
+              <ion-card-content>
+                <ion-grid :fixed="true">
+                  <ion-row>
+                    <ion-col>
+                    <h1>Balance</h1>
+                    </ion-col>
+                    <ion-col>
+                    <h1>₱
+                      {{ formatAmount(totalIncome - totalExpenses) ?? 0.00 }}</h1>
+                    </ion-col>
+                  </ion-row>
+                </ion-grid>
+              </ion-card-content>
+            </ion-card>
             <ion-card style="background-color: #20d0ff;color: white;">
               <ion-card-content>
                 <ion-grid :fixed="true">
@@ -38,21 +54,6 @@
                     </ion-col>
                     <ion-col>
                     <h1>₱{{ formatAmount(totalExpenses) ?? 0.00 }}</h1>
-                    </ion-col>
-                  </ion-row>
-                </ion-grid>
-              </ion-card-content>
-            </ion-card>
-            <ion-card style="background-color: #20d0ff;color: white;">
-              <ion-card-content>
-                <ion-grid :fixed="true">
-                  <ion-row>
-                    <ion-col>
-                    <h1>Balance</h1>
-                    </ion-col>
-                    <ion-col>
-                    <h1>₱
-                      {{ formatAmount(totalIncome - totalExpenses) ?? 0.00 }}</h1>
                     </ion-col>
                   </ion-row>
                 </ion-grid>
@@ -91,30 +92,68 @@ onMounted(async () => {
   }
 });
 
+
 const handleRefresh = async (event: CustomEvent) => {
-  // Simulate async operation (e.g. fetch data from API)
   await store.create();
   const stored = await store.get('transactions');
-  if (Array.isArray(stored)) {
-    transactions.value = stored;
-  }
-  (event.target as HTMLIonRefresherElement).complete();
 
+  if (Array.isArray(stored)) {
+    const now = new Date();
+    const currentMonth = now.getMonth(); // 0-based (Jan = 0)
+    const currentYear = now.getFullYear();
+
+    // Filter transactions by current month and year
+    transactions.value = stored.filter((t: any) => {
+      const tDate = new Date(t.date);
+      return (
+        tDate.getMonth() === currentMonth &&
+        tDate.getFullYear() === currentYear
+      );
+    });
+  } else {
+    transactions.value = [];
+  }
+
+  (event.target as HTMLIonRefresherElement).complete();
 };
 
+
 const totalIncome = computed(() => {
+  const now = new Date();
+  const currentMonth = now.getMonth(); // 0-based
+  const currentYear = now.getFullYear();
+
   return transactions.value
-    .filter(t => t.category === 'income')
+    .filter(t => {
+      const tDate = new Date(t.date);
+      return (
+        t.category === 'income' &&
+        tDate.getMonth() === currentMonth &&
+        tDate.getFullYear() === currentYear
+      );
+    })
     .reduce((sum, t) => sum + t.amount, 0)
-    .toFixed(2); // format to 2 decimal places
+    .toFixed(2);
 });
 
 const totalExpenses = computed(() => {
+  const now = new Date();
+  const currentMonth = now.getMonth(); // 0-based
+  const currentYear = now.getFullYear();
+
   return transactions.value
-    .filter(t => t.category === 'expenses')
+    .filter(t => {
+      const tDate = new Date(t.date);
+      return (
+        t.category === 'expenses' &&
+        tDate.getMonth() === currentMonth &&
+        tDate.getFullYear() === currentYear
+      );
+    })
     .reduce((sum, t) => sum + t.amount, 0)
-    .toFixed(2); // format to 2 decimal places
+    .toFixed(2);
 });
+
 </script>
 
 
