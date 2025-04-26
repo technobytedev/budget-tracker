@@ -2,7 +2,7 @@
   <ion-page>
     <ion-header>
       <ion-toolbar>
-        <ion-title style="padding-top: 20px;">Profile</ion-title>
+        <ion-title style="padding-top: 35px;padding-bottom: 15px;">Profile</ion-title>
       </ion-toolbar>
     </ion-header>
     <ion-content :fullscreen="true">
@@ -13,10 +13,10 @@
       </ion-header> -->
 
       <h1 style="text-align: center;">Version 1.0</h1>
-      <ion-item lines="none" style="width: 200px;">
+      <!-- <ion-item lines="none" style="width: 200px;">
         <ion-label>Dark Mode</ion-label>
         <ion-toggle @ionChange="toggleDarkMode" :checked="isDark" />
-      </ion-item>
+      </ion-item> -->
     </ion-content>
   </ion-page>
 </template>

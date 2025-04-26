@@ -2,7 +2,7 @@
   <ion-page>
     <ion-header>
       <ion-toolbar>
-        <ion-title style="padding-top: 20px;">Dashboard</ion-title>
+        <ion-title style="padding-top: 35px;padding-bottom: 15px;">Dashboard</ion-title>
       </ion-toolbar>
     </ion-header>
     <ion-content :fullscreen="true">

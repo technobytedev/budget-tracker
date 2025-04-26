@@ -8,6 +8,8 @@ import {
 import { ref, onMounted, watch } from 'vue';
 import { Storage } from '@ionic/storage';
 import { ellipse, square, triangle, appsOutline, walletOutline, add } from 'ionicons/icons';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
+
 
 // -------------------------
 // Refs and Reactive Values
@@ -59,14 +61,18 @@ const promptDelete = (id: string) => {
   isAlertOpen.value = true;
 };
 
+// Function for vibration feedback
+const hapticsImpactLight  = async () => {
+  await Haptics.impact({ style: ImpactStyle.Light });
+};
+
 const longPressTimeout = ref<number | null>(null);
+const hasMoved = ref(false);
 
 const handleLongPressStart = (id: string) => {
   longPressTimeout.value = window.setTimeout(() => {
     // Vibrate
-    if (navigator.vibrate) {
-      navigator.vibrate(100);
-    }
+    hapticsImpactLight()
 
     // Show modal or prompt delete
     promptDelete(id);
@@ -187,7 +193,7 @@ const alertButtons = [
   <ion-page>
     <ion-header>
       <ion-toolbar>
-        <ion-title style="padding-top: 20px;">Transactions</ion-title>
+        <ion-title style="padding-top: 35px;padding-bottom: 15px;">Transactions</ion-title>
       </ion-toolbar>
     </ion-header>
 
@@ -285,7 +291,8 @@ const alertButtons = [
   </ion-modal>
 
 
-  <ion-segment>
+  <ion-segment style="padding-left: 18px;
+  padding-right: 30px;" value="first" scroll-y>
     <ion-segment-button value="first" content-id="first">
       <ion-label>All</ion-label>
     </ion-segment-button>
@@ -302,7 +309,7 @@ const alertButtons = [
         <ion-item
           button
           v-for="(record, index) in transactions"
-          :key="record.id"
+          :key="record.id+'1'"
           @touchstart="handleLongPressStart(record.id)"
           @touchend="handleLongPressEnd"
           @touchcancel="handleLongPressEnd"
@@ -321,51 +328,49 @@ const alertButtons = [
       </ion-list>
     </ion-segment-content>
     <ion-segment-content id="second" class="transactionWrapper">
-      <ion-list v-if="transactions?.length > 0">
-        <template v-for="(record, index) in transactions"
-          :key="record.id"
-          @click="promptDelete(record.id)">
-        <ion-item
-          button
-          v-if="record.category == 'income'"
-        >
-          <ion-label style="margin: 5px!important;">
-            <h2> Amount: <span :class="record.category == 'expenses' ? 'text-red' : 'text-green'">
-              {{ record.category == 'expenses' ? '-' : '+' }}  {{ formatAmount(record.amount) }}
-              </span>
-            </h2>
-            <p>Date: {{ formatDateOnly(record.date) }}</p>
-            <p>Category: {{ record.category }}</p>
-            <p>Notes: {{ record.notes }}</p>
-            <!-- <p>ID: {{ record.id }}</p> -->
-          </ion-label>
-        </ion-item>
-      </template>
-      </ion-list>
-    </ion-segment-content>
-    <ion-segment-content id="third" class="transactionWrapper">
-      <ion-list v-if="transactions?.length > 0">
-        <template v-for="(record, index) in transactions"
-          :key="record.id"
-          @click="promptDelete(record.id)">
-        <ion-item
-          button
-          v-if="record.category == 'expenses'"
-        >
-          <ion-label style="margin: 5px!important;">
-            <h2> Amount: <span :class="record.category == 'expenses' ? 'text-red' : 'text-green'">
-              {{ record.category == 'expenses' ? '-' : '+' }}  {{ formatAmount(record.amount) }}
-              </span>
-            </h2>
-            <p>Date: {{ formatDateOnly(record.date) }}</p>
-            <p>Category: {{ record.category }}</p>
-            <p>Notes: {{ record.notes }}</p>
-            <!-- <p>ID: {{ record.id }}</p> -->
-          </ion-label>
-        </ion-item>
-      </template>
-      </ion-list>
-    </ion-segment-content>
+  <ion-list v-if="transactions?.length > 0">
+    <ion-item
+      v-for="(record, index) in transactions.filter(r => r.category === 'income')"
+      :key="record.id + '2'"
+      button
+      @touchstart="handleLongPressStart(record.id)"
+      @touchend="handleLongPressEnd"
+      @touchcancel="handleLongPressEnd"
+    >
+      <ion-label style="margin: 5px!important;">
+        <h2> Amount: <span :class="record.category == 'expenses' ? 'text-red' : 'text-green'">
+          {{ record.category == 'expenses' ? '-' : '+' }}  {{ formatAmount(record.amount) }}
+          </span>
+        </h2>
+        <p>Date: {{ formatDateOnly(record.date) }}</p>
+        <p>Category: {{ record.category }}</p>
+        <p>Notes: {{ record.notes }}</p>
+      </ion-label>
+    </ion-item>
+  </ion-list>
+</ion-segment-content>
+<ion-segment-content id="third" class="transactionWrapper">
+  <ion-list v-if="transactions?.length > 0">
+    <ion-item
+      v-for="(record, index) in transactions.filter(r => r.category === 'expenses')"
+      :key="record.id + '3'"
+      button
+      @touchstart="handleLongPressStart(record.id)"
+      @touchend="handleLongPressEnd"
+      @touchcancel="handleLongPressEnd"
+    >
+      <ion-label style="margin: 5px!important;">
+        <h2> Amount: <span :class="record.category == 'expenses' ? 'text-red' : 'text-green'">
+          {{ record.category == 'expenses' ? '-' : '+' }}  {{ formatAmount(record.amount) }}
+          </span>
+        </h2>
+        <p>Date: {{ formatDateOnly(record.date) }}</p>
+        <p>Category: {{ record.category }}</p>
+        <p>Notes: {{ record.notes }}</p>
+      </ion-label>
+    </ion-item>
+  </ion-list>
+</ion-segment-content>
   </ion-segment-view>
 
   <!-- Alert Confirmation -->
@@ -393,8 +398,8 @@ ion-content {
   color:#df1800
 }
 .transactionWrapper {
-  padding-left: 10px;
-  padding-right: 10px;
+  padding-left: 18px;
+  padding-right: 30px;
 }
 
 .custom-datetime-btn::part(native) {
